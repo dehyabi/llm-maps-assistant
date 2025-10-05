@@ -3,6 +3,8 @@ from .schemas import SearchRequest, PlaceDetailsRequest, DirectionsRequest, Sear
 from .google_maps import GoogleMapsClient
 from .config import get_settings
 from .rate_limit import limiter
+from fastapi import HTTPException
+import httpx
 
 router = APIRouter()
 
@@ -50,3 +52,16 @@ async def embed_directions(origin: str, destination: str, mode: str | None = Non
     if mode:
         ext += f"&travelmode={mode}"
     return EmbedDirectionsResponse(embed_url=url, external_url=ext)
+
+# Tool-call friendly wrappers (optional): allow Open WebUI to call via name mapping
+@router.post("/tool/search_places", response_model=SearchResponse)
+async def tool_search_places(request: Request, payload: SearchRequest) -> SearchResponse:
+    return await search_places(request, payload)
+
+@router.get("/tool/embed_place/{place_id}", response_model=EmbedPlaceResponse)
+async def tool_embed_place(place_id: str) -> EmbedPlaceResponse:
+    return await embed_place(place_id)
+
+@router.get("/tool/embed_directions", response_model=EmbedDirectionsResponse)
+async def tool_embed_directions(origin: str, destination: str, mode: str | None = None) -> EmbedDirectionsResponse:
+    return await embed_directions(origin, destination, mode)

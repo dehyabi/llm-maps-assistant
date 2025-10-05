@@ -7,7 +7,12 @@ class Settings(BaseSettings):
 
     app_name: str = "LLM Maps Assistant API"
     environment: str = Field(default="development", validation_alias="ENVIRONMENT")
-    allowed_origins: list[str] = Field(default_factory=lambda: ["http://localhost:5173", "http://localhost:3000"])  # update as needed
+    allowed_origins: list[str] = Field(default_factory=lambda: [
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "null",  # Allow file:// protocol for local HTML files
+    ])  # update as needed
 
     google_maps_api_key: str = Field(min_length=10, validation_alias="GOOGLE_MAPS_API_KEY")
 

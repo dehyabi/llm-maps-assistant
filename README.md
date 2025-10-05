@@ -29,7 +29,17 @@ FastAPI backend that calls Google Maps (Places, Details, Directions) and returns
 - CORS is restricted via `allowed_origins` in `backend/app/config.py`.
 
 ### Open WebUI
-- Create a tool that calls `/api/search` or `/api/directions`, then render the `embed_url` (iframe) or use `external_url` to open Google Maps.
+1. Ensure Ollama is running (e.g., `ollama run phi3:mini`) and Open WebUI is up at `http://localhost:3000`.
+2. In Open WebUI, import tools/actions from this backend:
+   - Tools (OpenAI-style): `http://localhost:8000/openwebui-tools.json`
+   - Actions (HTTP requests): `http://localhost:8000/openwebui-actions.json`
+3. Or add manually three tools mapped to your API:
+   - `POST http://localhost:8000/api/search`
+   - `GET  http://localhost:8000/api/embed/place/{place_id}`
+   - `GET  http://localhost:8000/api/embed/directions?origin=...&destination=...&mode=...`
+4. Suggested system prompt:
+   - "You are a Maps assistant. When asked for places or directions, call the provided tools. For places: call search_places with the user query, pick the top result, then call embed_place. For directions: call embed_directions with origin, destination, and optional mode. Always include the iframe `embed_url` and `external_url` in the final answer."
+5. If Open WebUI cannot render iframes inside chat, present the `external_url` for the user to open. If you customize UI, render an iframe with the `embed_url`.
 
 ### Local LLM
 - You can run Open WebUI and connect it to any local LLM. The LLM can call the backend endpoints and return the embed URL or link as part of its response.
