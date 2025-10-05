@@ -1,0 +1,66 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LLM Maps Assistant</title>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 0; padding: 24px; }
+      .row { display:flex; gap:12px; flex-wrap: wrap; align-items: center; }
+      input, button, select { padding:8px 10px; font-size: 16px; }
+      iframe { width: 100%; height: 70vh; border: 0; margin-top: 16px; }
+      .links { margin-top: 8px; }
+    </style>
+  </head>
+  <body>
+    <h1>LLM Maps Assistant</h1>
+    <div class="row">
+      <input id="query" placeholder="Find coffee near..." size="40" />
+      <button onclick="doSearch()">Search</button>
+    </div>
+    <div class="row">
+      <input id="origin" placeholder="Origin (address or lat,lng)" size="40" />
+      <input id="destination" placeholder="Destination (address or lat,lng)" size="40" />
+      <select id="mode">
+        <option value="">Mode (auto)</option>
+        <option value="driving">Driving</option>
+        <option value="walking">Walking</option>
+        <option value="bicycling">Bicycling</option>
+        <option value="transit">Transit</option>
+      </select>
+      <button onclick="showDirections()">Directions</button>
+    </div>
+    <iframe id="map" src="about:blank" allowfullscreen></iframe>
+    <div class="links"><a id="external" href="#" target="_blank">Open in Google Maps</a></div>
+    <script>
+      const API = location.origin.replace(/:\d+$/, ":8000") + "/api"; // assumes backend on 8000
+      async function doSearch(){
+        const query = document.getElementById("query").value.trim();
+        if(!query) return;
+        const res = await fetch(API+"/search", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({query})});
+        const data = await res.json();
+        const first = (data.raw && data.raw.results && data.raw.results[0]) || null;
+        if(!first){ alert("No results"); return; }
+        const placeId = first.place_id;
+        const embed = await fetch(API+"/embed/place/"+encodeURIComponent(placeId));
+        const embedData = await embed.json();
+        document.getElementById("map").src = embedData.embed_url;
+        document.getElementById("external").href = embedData.external_url;
+      }
+      async function showDirections(){
+        const origin = document.getElementById("origin").value.trim();
+        const destination = document.getElementById("destination").value.trim();
+        const mode = document.getElementById("mode").value;
+        if(!origin || !destination) return;
+        const url = new URL(API+"/embed/directions");
+        url.searchParams.set("origin", origin);
+        url.searchParams.set("destination", destination);
+        if(mode) url.searchParams.set("mode", mode);
+        const res = await fetch(url.toString());
+        const data = await res.json();
+        document.getElementById("map").src = data.embed_url;
+        document.getElementById("external").href = data.external_url;
+      }
+    </script>
+  </body>
+</html>
