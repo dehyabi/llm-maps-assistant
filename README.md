@@ -6,7 +6,16 @@ Chat-based interface for finding places and getting directions using Google Maps
 
 ## 🚀 Quick Start
 
-### 1. Setup Backend
+### 1. Start Ollama (LLM Server)
+```bash
+# Terminal 1: Start Ollama server
+ollama serve
+
+# Terminal 2: Pull and verify model
+ollama pull phi3:mini
+```
+
+### 2. Setup Backend
 ```bash
 # Navigate to project directory
 cd llm-maps-assistant
@@ -18,7 +27,7 @@ source .venv/bin/activate
 uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-### 2. Open Chat Interface
+### 3. Open Chat Interface
 ```bash
 # Open in browser
 xdg-open frontend/public/chat.html
@@ -26,7 +35,7 @@ xdg-open frontend/public/chat.html
 # Or manually open: frontend/public/chat.html
 ```
 
-### 3. Start Chatting!
+### 4. Start Chatting!
 Try these prompts:
 - "Find sushi restaurants in Tokyo"
 - "Show me coffee shops near Central Park"
@@ -37,9 +46,10 @@ Try these prompts:
 
 ## 📋 Prerequisites
 
-- Python 3.10+
-- Google Cloud project with: Places API, Directions API, Maps Embed API enabled
-- Modern web browser (Chrome, Firefox, Safari)
+- **Python 3.10+**
+- **Ollama** - For running local LLM (phi3:mini)
+- **Google Cloud project** with: Places API, Directions API, Maps Embed API enabled
+- **Modern web browser** (Chrome, Firefox, Safari)
 
 ---
 
@@ -97,21 +107,26 @@ Use natural language:
 
 ## ✨ Features
 
-### Chat Interface
-The `chat.html` interface provides:
-- ✅ **Natural language queries** - Talk like you would to a person
-- ✅ **Smart intent detection** - Automatically understands if you want places or directions
+### Chat Interface with Real LLM
+The `chat.html` interface now uses **Ollama (phi3:mini)** for intelligent conversations:
+- ✅ **Real LLM responses** - Powered by phi3:mini local model
+- ✅ **Natural language understanding** - True conversational AI
+- ✅ **Context awareness** - Remembers conversation history
+- ✅ **Automatic Maps integration** - LLM calls Google Maps APIs
 - ✅ **Split-screen view** - Chat on the left, embedded Google Maps on the right
 - ✅ **Quick prompts** - Pre-built examples to get started
-- ✅ **Typing indicator** - Shows when processing
+- ✅ **Typing indicator** - Shows when LLM is thinking
 - ✅ **Responsive design** - Works on desktop and mobile
 
 ### How It Works
-1. Type your question in natural language
-2. The interface detects your intent (search places or get directions)
-3. Backend calls Google Maps APIs (Places, Directions, Embed)
-4. Results appear in chat with embedded map on the right
-5. Click "Open in Google Maps" to view in full Google Maps app
+1. **You type** your question in natural language
+2. **Frontend** sends message to backend `/api/llm/chat` endpoint
+3. **Backend** forwards to Ollama (phi3:mini) with system prompt
+4. **LLM** generates intelligent response
+5. **Backend** detects if Maps API call is needed (places/directions)
+6. **Backend** calls Google Maps APIs and enriches LLM response
+7. **Frontend** displays LLM response in chat + embedded map on right
+8. **You can** click "Open in Google Maps" for full navigation
 
 ---
 
@@ -120,6 +135,7 @@ The `chat.html` interface provides:
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/health` | Health check |
+| **POST** | **`/api/llm/chat`** | **Chat with LLM (main endpoint)** |
 | POST | `/api/search` | Search for places |
 | POST | `/api/place` | Get place details |
 | POST | `/api/directions` | Get directions |
@@ -129,7 +145,14 @@ The `chat.html` interface provides:
 
 ### Example API Calls
 
-**Search Places:**
+**Chat with LLM (Main Endpoint):**
+```bash
+curl -X POST http://localhost:8000/api/llm/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Find sushi restaurants in Tokyo", "history": []}'
+```
+
+**Search Places (Direct):**
 ```bash
 curl -X POST http://localhost:8000/api/search \
   -H "Content-Type: application/json" \
@@ -452,6 +475,6 @@ Run `python3 verify_setup.py` to check your setup
 
 ---
 
-**Built with ❤️ for the Code Test**
+**Built with ❤️ in Indonesia**
 
 *Last Updated: 2025-10-06*

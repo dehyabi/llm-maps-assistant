@@ -401,17 +401,40 @@
         }
         
         async function processUserQuery(query) {
-            // Simple intent detection
-            const lowerQuery = query.toLowerCase();
-            
-            // Check if it's a directions query
-            if (lowerQuery.includes('direction') || lowerQuery.includes('how to get') || 
-                lowerQuery.includes('from') && lowerQuery.includes('to')) {
-                return await handleDirectionsQuery(query);
+            // Use LLM endpoint
+            try {
+                const response = await fetch(`${API_BASE}/llm/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: query,
+                        history: conversationHistory
+                    })
+                });
+                
+                if (!response.ok) throw new Error('LLM request failed');
+                
+                const data = await response.json();
+                
+                // Update conversation history
+                conversationHistory.push({ role: 'user', content: query });
+                conversationHistory.push({ role: 'assistant', content: data.response });
+                
+                // Keep only last 10 messages
+                if (conversationHistory.length > 10) {
+                    conversationHistory = conversationHistory.slice(-10);
+                }
+                
+                return {
+                    text: data.response,
+                    mapData: data.map_data
+                };
+            } catch (error) {
+                return {
+                    text: `Error: ${error.message}. Make sure Ollama is running with: ollama serve`,
+                    mapData: null
+                };
             }
-            
-            // Otherwise treat as place search
-            return await handlePlaceSearch(query);
         }
         
         async function handlePlaceSearch(query) {
