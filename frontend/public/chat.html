@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM Maps Assistant - Chat Interface</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f5;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 1.8rem;
+            margin-bottom: 5px;
+        }
+        
+        .header p {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        
+        .container {
+            flex: 1;
+            display: flex;
+            max-width: 1400px;
+            width: 100%;
+            margin: 0 auto;
+            overflow: hidden;
+        }
+        
+        .chat-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: white;
+            border-right: 1px solid #e0e0e0;
+        }
+        
+        .map-panel {
+            width: 500px;
+            background: white;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .message {
+            display: flex;
+            gap: 10px;
+            animation: fadeIn 0.3s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .message.user {
+            justify-content: flex-end;
+        }
+        
+        .message-content {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            line-height: 1.5;
+        }
+        
+        .message.user .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .message.assistant .message-content {
+            background: #f0f0f0;
+            color: #333;
+        }
+        
+        .message.system .message-content {
+            background: #fff3cd;
+            color: #856404;
+            max-width: 100%;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+        
+        .map-link {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 8px 16px;
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        
+        .map-link:hover {
+            background: #667eea;
+            color: white;
+        }
+        
+        .embed-preview {
+            margin-top: 10px;
+            padding: 8px;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .embed-preview:hover {
+            transform: scale(1.02);
+        }
+        
+        .embed-preview img {
+            width: 100%;
+            border-radius: 4px;
+        }
+        
+        .chat-input-container {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .chat-input-wrapper {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .chat-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 24px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        
+        .chat-input:focus {
+            border-color: #667eea;
+        }
+        
+        .send-button {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 24px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .send-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .send-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .map-container {
+            flex: 1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .map-container h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .map-frame {
+            flex: 1;
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .no-map {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-size: 1.1rem;
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .quick-prompts {
+            padding: 10px 20px;
+            background: #f8f9fa;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .quick-prompts-title {
+            font-size: 0.85rem;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        
+        .quick-prompt-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .quick-prompt {
+            padding: 6px 12px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 16px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .quick-prompt:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .typing-indicator {
+            display: flex;
+            gap: 4px;
+            padding: 12px 16px;
+        }
+        
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: #999;
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+        
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-10px); }
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+            
+            .map-panel {
+                width: 100%;
+                height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🗺️ LLM Maps Assistant</h1>
+        <p>Ask me to find places or get directions - I'll show you on the map!</p>
+    </div>
+    
+    <div class="container">
+        <div class="chat-panel">
+            <div class="chat-messages" id="chat-messages">
+                <div class="message system">
+                    <div class="message-content">
+                        👋 Hi! I'm your Maps Assistant. Try asking me things like:<br>
+                        "Find coffee shops in New York" or "How do I get from Times Square to Central Park?"
+                    </div>
+                </div>
+            </div>
+            
+            <div class="quick-prompts">
+                <div class="quick-prompts-title">Quick prompts:</div>
+                <div class="quick-prompt-buttons">
+                    <button class="quick-prompt" onclick="usePrompt('Find sushi restaurants in Tokyo')">🍣 Sushi in Tokyo</button>
+                    <button class="quick-prompt" onclick="usePrompt('Show me coffee shops near Central Park')">☕ Coffee near Central Park</button>
+                    <button class="quick-prompt" onclick="usePrompt('Directions from Times Square to Empire State Building')">🚶 Walking directions NYC</button>
+                </div>
+            </div>
+            
+            <div class="chat-input-container">
+                <div class="chat-input-wrapper">
+                    <input 
+                        type="text" 
+                        class="chat-input" 
+                        id="chat-input" 
+                        placeholder="Ask me to find a place or get directions..."
+                        onkeypress="handleKeyPress(event)"
+                    >
+                    <button class="send-button" id="send-button" onclick="sendMessage()">Send</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="map-panel">
+            <div class="map-container" id="map-container">
+                <div class="no-map">
+                    📍 Map will appear here when you search for a place or get directions
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const API_BASE = 'http://localhost:8000/api';
+        let conversationHistory = [];
+        
+        function addMessage(role, content, mapData = null) {
+            const messagesDiv = document.getElementById('chat-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}`;
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            
+            if (typeof content === 'string') {
+                contentDiv.innerHTML = content;
+            } else {
+                contentDiv.appendChild(content);
+            }
+            
+            messageDiv.appendChild(contentDiv);
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            
+            if (mapData) {
+                showMap(mapData);
+            }
+        }
+        
+        function showTyping() {
+            const messagesDiv = document.getElementById('chat-messages');
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'message assistant';
+            typingDiv.id = 'typing-indicator';
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content typing-indicator';
+            contentDiv.innerHTML = '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
+            
+            typingDiv.appendChild(contentDiv);
+            messagesDiv.appendChild(typingDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        
+        function hideTyping() {
+            const typing = document.getElementById('typing-indicator');
+            if (typing) typing.remove();
+        }
+        
+        function showMap(mapData) {
+            const container = document.getElementById('map-container');
+            container.innerHTML = `
+                <h3>📍 Map View</h3>
+                <iframe class="map-frame" src="${mapData.embed_url}"></iframe>
+                <div style="margin-top: 10px; text-align: center;">
+                    <a href="${mapData.external_url}" target="_blank" class="map-link">
+                        Open in Google Maps →
+                    </a>
+                </div>
+            `;
+        }
+        
+        async function processUserQuery(query) {
+            // Simple intent detection
+            const lowerQuery = query.toLowerCase();
+            
+            // Check if it's a directions query
+            if (lowerQuery.includes('direction') || lowerQuery.includes('how to get') || 
+                lowerQuery.includes('from') && lowerQuery.includes('to')) {
+                return await handleDirectionsQuery(query);
+            }
+            
+            // Otherwise treat as place search
+            return await handlePlaceSearch(query);
+        }
+        
+        async function handlePlaceSearch(query) {
+            try {
+                // Search for places
+                const searchResponse = await fetch(`${API_BASE}/search`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query, radius: 5000 })
+                });
+                
+                if (!searchResponse.ok) throw new Error('Search failed');
+                
+                const searchData = await searchResponse.json();
+                const results = searchData.raw.results || [];
+                
+                if (results.length === 0) {
+                    return {
+                        text: "I couldn't find any places matching your query. Try being more specific or include a location.",
+                        mapData: null
+                    };
+                }
+                
+                // Get the top result
+                const topPlace = results[0];
+                
+                // Get embed URL for the place
+                const embedResponse = await fetch(`${API_BASE}/embed/place/${topPlace.place_id}`);
+                if (!embedResponse.ok) throw new Error('Failed to get map');
+                
+                const embedData = await embedResponse.json();
+                
+                // Format response
+                let responseText = `I found <strong>${topPlace.name}</strong>!<br><br>`;
+                if (topPlace.formatted_address) {
+                    responseText += `📍 ${topPlace.formatted_address}<br>`;
+                }
+                if (topPlace.rating) {
+                    responseText += `⭐ Rating: ${topPlace.rating}/5<br>`;
+                }
+                
+                responseText += `<br>I've shown it on the map. You can also `;
+                responseText += `<a href="${embedData.external_url}" target="_blank" style="color: white; text-decoration: underline;">open it in Google Maps</a>.`;
+                
+                if (results.length > 1) {
+                    responseText += `<br><br>I found ${results.length} results total. Here are a few more:<br>`;
+                    results.slice(1, 4).forEach(place => {
+                        responseText += `• ${place.name}`;
+                        if (place.rating) responseText += ` (${place.rating}⭐)`;
+                        responseText += `<br>`;
+                    });
+                }
+                
+                return {
+                    text: responseText,
+                    mapData: embedData
+                };
+            } catch (error) {
+                return {
+                    text: `Sorry, I encountered an error: ${error.message}`,
+                    mapData: null
+                };
+            }
+        }
+        
+        async function handleDirectionsQuery(query) {
+            try {
+                // Simple parsing - try to extract origin and destination
+                const lowerQuery = query.toLowerCase();
+                let origin, destination, mode = 'driving';
+                
+                // Try to parse "from X to Y"
+                const fromToMatch = query.match(/from\s+(.+?)\s+to\s+(.+?)(?:\s+by\s+(\w+))?$/i);
+                if (fromToMatch) {
+                    origin = fromToMatch[1].trim();
+                    destination = fromToMatch[2].trim();
+                    if (fromToMatch[3]) mode = fromToMatch[3].toLowerCase();
+                }
+                
+                // Detect mode keywords
+                if (lowerQuery.includes('walk')) mode = 'walking';
+                if (lowerQuery.includes('bike') || lowerQuery.includes('cycling')) mode = 'bicycling';
+                if (lowerQuery.includes('transit') || lowerQuery.includes('bus') || lowerQuery.includes('train')) mode = 'transit';
+                if (lowerQuery.includes('driv')) mode = 'driving';
+                
+                if (!origin || !destination) {
+                    return {
+                        text: "I need both an origin and destination. Try asking like: 'Directions from Times Square to Central Park'",
+                        mapData: null
+                    };
+                }
+                
+                // Get directions embed
+                const params = new URLSearchParams({ origin, destination, mode });
+                const embedResponse = await fetch(`${API_BASE}/embed/directions?${params}`);
+                
+                if (!embedResponse.ok) throw new Error('Failed to get directions');
+                
+                const embedData = await embedResponse.json();
+                
+                const modeEmoji = {
+                    'driving': '🚗',
+                    'walking': '🚶',
+                    'bicycling': '🚴',
+                    'transit': '🚌'
+                };
+                
+                let responseText = `${modeEmoji[mode] || '🗺️'} Here are directions from <strong>${origin}</strong> to <strong>${destination}</strong> by ${mode}!<br><br>`;
+                responseText += `I've shown the route on the map. You can also `;
+                responseText += `<a href="${embedData.external_url}" target="_blank" style="color: white; text-decoration: underline;">open it in Google Maps</a> for turn-by-turn navigation.`;
+                
+                return {
+                    text: responseText,
+                    mapData: embedData
+                };
+            } catch (error) {
+                return {
+                    text: `Sorry, I encountered an error: ${error.message}`,
+                    mapData: null
+                };
+            }
+        }
+        
+        async function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const sendButton = document.getElementById('send-button');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // Add user message
+            addMessage('user', message);
+            input.value = '';
+            
+            // Disable input
+            sendButton.disabled = true;
+            input.disabled = true;
+            
+            // Show typing indicator
+            showTyping();
+            
+            // Process query
+            const response = await processUserQuery(message);
+            
+            // Hide typing
+            hideTyping();
+            
+            // Add assistant response
+            addMessage('assistant', response.text, response.mapData);
+            
+            // Re-enable input
+            sendButton.disabled = false;
+            input.disabled = false;
+            input.focus();
+        }
+        
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+        
+        function usePrompt(prompt) {
+            document.getElementById('chat-input').value = prompt;
+            sendMessage();
+        }
+        
+        // Focus input on load
+        window.onload = () => {
+            document.getElementById('chat-input').focus();
+        };
+    </script>
+</body>
+</html>
