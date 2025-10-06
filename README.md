@@ -2,6 +2,8 @@
 
 Chat-based interface for finding places and getting directions using Google Maps. Ask natural language questions like "Find sushi restaurants in Tokyo" or "How do I get from Times Square to Central Park?" and see results on an embedded map.
 
+<img width="1356" height="954" alt="Screenshot from 2025-10-06 07-50-35" src="https://github.com/user-attachments/assets/7f37177d-67d4-41d3-a590-1fd601f106c0" />
+
 ---
 
 ## 🚀 Quick Start
